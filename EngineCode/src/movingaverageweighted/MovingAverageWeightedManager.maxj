@@ -1,0 +1,57 @@
+/**
+ * Document: MaxCompiler Tutorial (maxcompiler-tutorial)
+ * Chapter: 3      Example: 3      Name: Moving Average Weighted
+ * MaxFile name: MovingAverageWeighted
+ * Summary:
+ *     Manager for a weighted three point moving average design.
+ *  This example has two modes - one with default weighting of
+ *  1.0 for each tap, and one with configurable weighting.
+ *  All IO is between the CPU and the DFE.
+ */
+package movingaverageweighted;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParamArray;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager.IOType;
+
+class MovingAverageWeightedManager {
+
+	static final int maxWindowSize = 9;
+	static final int samples = 8;
+	static final float defaultWeight = 1.0f;
+
+	public static void main(String[] args) {
+		EngineParameters params = new EngineParameters(args);
+		Manager manager = new Manager(params);
+		Kernel kernel = new MovingAverageWeightedKernel(
+				manager.makeKernelParameters());
+		manager.addMaxFileConstant("maxWindowSize", maxWindowSize);
+		manager.setKernel(kernel);
+		manager.setIO(IOType.ALL_CPU);
+		manager.createSLiCinterface(interfaceVariable());
+		manager.build();
+	}
+	
+	static EngineInterface interfaceVariable() {
+		EngineInterface ei = new EngineInterface("weighted",
+				"Runs moving average with weighting.");
+		InterfaceParam size = ei.addParam("size", CPUTypes.INT32);
+		InterfaceParamArray weights = ei.addParamArray("weights", CPUTypes.FLOAT);
+		ei.setScalar("MovingAverageWeightedKernel", "size", size);
+		ei.setTicks("MovingAverageWeightedKernel", samples);
+		ei.setScalar("MovingAverageWeightedKernel", "w1", weights[0]);
+		ei.setScalar("MovingAverageWeightedKernel", "w2", weights[1]);
+		ei.setScalar("MovingAverageWeightedKernel", "b", weights[2]);
+		ei.setStream("x", CPUTypes.FLOAT, 2 * samples * CPUTypes.FLOAT.sizeInBytes());
+		ei.setStream("y", CPUTypes.FLOAT, samples * CPUTypes.FLOAT.sizeInBytes());
+		ei.setStream("w1n", CPUTypes.FLOAT, samples * CPUTypes.FLOAT.sizeInBytes());
+		ei.setStream("w2n", CPUTypes.FLOAT, samples * CPUTypes.FLOAT.sizeInBytes());
+		ei.setStream("bn", CPUTypes.FLOAT, samples * CPUTypes.FLOAT.sizeInBytes());
+		return ei;
+	}
+}

@@ -1,0 +1,49 @@
+/**
+ * Document: MaxCompiler Tutorial (maxcompiler-tutorial)
+ * Chapter: 3      Example: 3      Name: Moving Average Weighted
+ * MaxFile name: MovingAverageWeighted
+ * Summary:
+ *       Computes a weighted three point moving average using
+ *  zero at boundaries. The weights for the three taps are
+ *  passed in as scalar inputs.
+ */
+package movingaverageweighted;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
+
+
+class MovingAverageWeightedKernel extends Kernel {
+
+	MovingAverageWeightedKernel(KernelParameters parameters) {
+		super(parameters);
+		
+	    final DFEType type = dfeFloat(8, 24);
+        final int features = 2;
+	    DFEVectorType<DFEVar> vectorType = new DFEVectorType<DFEVar>(type, features);
+		
+		DFEVector<DFEVar> x = io.input("x", vectorType);
+		DFEVar y = io.input("y", type);
+		DFEVar w1 = io.scalarInput("w1", type);
+		DFEVar w2 = io.scalarInput("w2", type);
+		DFEVar b = io.scalarInput("b", type);
+		DFEVar s = io.scalarInput("size", type);
+		
+		DFEVar z = (w1*x[0] + w2*x[1] + b);
+		DFEVar p = KernelMath.exp(z);
+		
+	    DFEVar err = p - y;
+	    DFEVar w1_new = w1 - 0.01 * x[0] * err;
+	    DFEVar w2_new = w2 - 0.01 * x[1] * err;
+	    DFEVar b_new = b - 0.01 * err;
+	    
+		io.output("w1n", w1_new, type);
+		io.output("w2n", w2_new, type);
+		io.output("bn", b_new, type);
+	}
+}
